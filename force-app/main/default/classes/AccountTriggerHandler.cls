@@ -24,4 +24,15 @@ public with sharing class AccountTriggerHandler {
             }
         }
     }
+
+    public static void aggOppRevByStage(Id accountId){
+        if(accountId == null) return;
+        List<AggregateResult> result = [SELECT stageName stage, SUM(Amount) totalAmount FROM Opportunity WHERE AccountId =: accountId GROUP BY stageName]; 
+        if(result.isEmpty()) return;
+        Map<String, Decimal> stageToAmount = new Map<String, Decimal>();
+        for(AggregateResult ar : result){
+            stageToAmount.put((String)ar.get('stage'), (Decimal)ar.get('totalAmount'));
+        }
+        System.debug(stageToAmount);
+    }
 }
