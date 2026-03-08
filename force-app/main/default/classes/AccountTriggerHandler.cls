@@ -32,7 +32,32 @@ public with sharing class AccountTriggerHandler {
         Map<String, Decimal> stageToAmount = new Map<String, Decimal>();
         for(AggregateResult ar : result){
             stageToAmount.put((String)ar.get('stage'), (Decimal)ar.get('totalAmount'));
-        }
+        }                             
         System.debug(stageToAmount);
+    }
+    /**
+     * Automatic Account Rating Based on Total Opportunity Value
+     */
+    public static void refreshAccountRatings(List<Account> accList){
+        Map<Id, Decimal> oppToAcc = new Map<Id, Decimal>();
+        for(AggregateResult ar : [SELECT AccountId accId, SUM(Amount) totalAmount FROM Opportunity WHERE AccountId IN: accList GROUP BY AccountId]){
+            oppToAcc.put((Id)ar.get('accId'), (Decimal)ar.get('totalAmount'));
+        }
+        List<Account> acctsToUpdate = new List<Account>();
+        for(Id accId : oppToAcc.keySet()){
+            Decimal amount = oppToAcc.get(accId);
+            Account acc = new Account();
+            acc.Id = accId;
+            if(amount >= 500000){
+                acc.Rating = 'Hot';
+            }else if(amount >= 100000 && amount <= 499999){
+                acc.Rating = 'Warm';
+            }else{
+                acc.Rating = 'Cold';
+            }
+        }
+        if(!acctsToUpdate.isEmpty()){
+            update acctsToUpdate;
+        }
     }
 }
